@@ -44,6 +44,8 @@ SESSION_DAYS = 30
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
 _GOOGLE_STATES: dict[str, float] = {}  # state -> expiry timestamp
+# short-lived tokens so the Office online viewer can fetch private files
+_VIEW_TOKENS: dict[str, tuple] = {}  # token -> (user_id, expiry, filename)
 
 app = FastAPI(title="PX4X")
 
@@ -385,6 +387,30 @@ async def serve_file(name: str, session: str | None = Cookie(default=None)):
     return FileResponse(target)
 
 
+@app.get("/api/view-token")
+async def view_token(name: str, session: str | None = Cookie(default=None)):
+    """Short-lived public URL so the Office online viewer can fetch a private file."""
+    user = require_user(session)
+    target = user_dir(user["id"]) / safe_name(name)
+    if not target.exists() or not target.is_file():
+        raise HTTPException(404, "الملف غير موجود")
+    tok = secrets.token_urlsafe(24)
+    _VIEW_TOKENS[tok] = (user["id"], time.time() + 3600, target.name)
+    return {"token": tok}
+
+
+@app.get("/t/{token}")
+async def token_file(token: str):
+    rec = _VIEW_TOKENS.get(token)
+    if not rec or rec[1] < time.time():
+        raise HTTPException(404, "انتهت صلاحية رابط المشاهدة")
+    uid, _, fname = rec
+    target = user_dir(uid) / safe_name(fname)
+    if not target.exists() or not target.is_file():
+        raise HTTPException(404, "الملف غير موجود")
+    return FileResponse(target)
+
+
 # ------------------------------------------------------------------ sharing
 @app.post("/api/share/{name}")
 async def create_share(name: str, session: str | None = Cookie(default=None)):
@@ -460,7 +486,10 @@ async def view_page(request: Request, name: str, session: str | None = Cookie(de
     if not target.exists() or not target.is_file():
         raise HTTPException(404, "الملف غير موجود")
     base = str(request.base_url).rstrip("/")
-    file_url = f"{base}/files/{quote(target.name)}"
+    # tokenized URL so the Office viewer can fetch the private file
+    tok = secrets.token_urlsafe(24)
+    _VIEW_TOKENS[tok] = (user["id"], time.time() + 3600, target.name)
+    file_url = f"{base}/t/{tok}"
     viewer = "https://view.officeapps.live.com/op/embed.aspx?src=" + quote(file_url, safe="")
     return f"""<!DOCTYPE html>
 <html lang="ar" dir="rtl"><head><meta charset="UTF-8">
