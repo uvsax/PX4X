@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PX4X | مكتبة الباوربوينت</title>
+<style>
+  :root{--bg:#0f1420;--card:#1a2233;--card2:#222c42;--text:#f1f4fa;
+        --muted:#9aa7c2;--accent:#7b2ff7;--danger:#e63946;--ok:#2ec4b6;}
+  *{box-sizing:border-box;font-family:"Segoe UI",Tahoma,Arial,sans-serif;}
+  body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;}
+  header{background:linear-gradient(135deg,#7b2ff7,#2ec4b6);padding:22px 20px;
+         display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  header .brand h1{margin:0;font-size:24px;}
+  header .brand p{margin:6px 0 0;color:#eef;font-size:13px;}
+  header .user{display:flex;align-items:center;gap:10px;}
+  header .user b{background:#ffffff22;padding:8px 14px;border-radius:20px;}
+  header .user button{background:#ffffff22;border:0;color:#fff;padding:8px 14px;
+         border-radius:20px;cursor:pointer;}
+  main{max-width:900px;margin:0 auto;padding:24px 16px 60px;}
+  .card{background:var(--card);border-radius:16px;padding:22px;margin-bottom:18px;
+        box-shadow:0 8px 24px rgba(0,0,0,.35);}
+  .tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .tab{flex:1;padding:11px;border:0;border-radius:10px;cursor:pointer;
+       background:var(--card2);color:var(--muted);font-size:15px;font-weight:bold;}
+  .tab.active{background:var(--accent);color:#fff;}
+  input[type=text],input[type=password]{width:100%;padding:13px;border-radius:10px;
+    border:1px solid #33405c;background:#0d1322;color:var(--text);font-size:15px;margin-bottom:10px;}
+  button.big{width:100%;padding:13px;border:0;border-radius:10px;background:var(--accent);
+    color:#fff;font-size:16px;font-weight:bold;cursor:pointer;}
+  .drop{border:2px dashed #33405c;border-radius:12px;padding:30px;text-align:center;
+        cursor:pointer;transition:.2s;color:var(--muted);}
+  .drop:hover,.drop.over{border-color:var(--accent);color:var(--text);background:#161d30;}
+  .drop input{display:none;}
+  .bar{height:8px;background:#0d1322;border-radius:4px;margin-top:12px;overflow:hidden;display:none;}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+  .file{background:var(--card2);border-radius:12px;padding:14px;display:flex;
+        flex-direction:column;gap:8px;}
+  .file .icon{font-size:40px;text-align:center;}
+  .file .t{font-weight:bold;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .file .m{color:var(--muted);font-size:12px;}
+  .file .row{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;}
+  .btn{flex:1;border:0;border-radius:8px;padding:9px 6px;cursor:pointer;font-size:12px;
+       font-weight:bold;color:#fff;white-space:nowrap;}
+  .btn.view{background:var(--accent);}
+  .btn.dl{background:#33405c;}
+  .btn.share{background:var(--ok);}
+  .btn.del{background:var(--danger);}
+  .empty{text-align:center;color:var(--muted);padding:30px;}
+  .status{margin-top:10px;font-size:13px;min-height:20px;color:var(--muted);}
+  .status.ok{color:var(--ok);} .status.err{color:var(--danger);}
+  .hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.8;}
+  #authWrap{max-width:420px;margin:60px auto;padding:0 16px;}
+  [hidden]{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- شاشة الدخول -->
+<div id="authWrap">
+  <div class="card">
+    <h2 style="text-align:center;margin-top:0">📊 PX4X</h2>
+    <p style="text-align:center;color:var(--muted);font-size:13px">سجّل الدخول أو أنشئ حساباً جديداً</p>
+    <div class="tabs">
+      <button class="tab active" id="tabLogin" onclick="authTab('login')">دخول</button>
+      <button class="tab" id="tabReg" onclick="authTab('register')">حساب جديد</button>
+    </div>
+    <input type="text" id="username" placeholder="اسم المستخدم" autocomplete="username">
+    <input type="password" id="password" placeholder="كلمة المرور" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter')doAuth()">
+    <button class="big" id="authBtn" onclick="doAuth()">دخول</button>
+    <div id="googleWrap" hidden>
+      <div style="text-align:center;color:var(--muted);margin:14px 0 10px;font-size:13px">— أو —</div>
+      <button class="big" style="background:#fff;color:#333;display:flex;align-items:center;justify-content:center;gap:10px"
+              onclick="location.href='/auth/google'">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.1.1 3.5 2.7.2.1c2.2-2 3.8-5 3.8-8.7z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.1 0-5.8-2.1-6.8-5l-.1.1-3.7 2.9v.1C3.5 21.3 7.5 24 12 24z"/><path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-.1-.1-3.6-2.8-.1.1C.5 8.5 0 10.1 0 12s.5 3.5 1.4 5.1l3.8-2.7z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.5 0 3.5 2.7 1.4 6.9l3.8 2.8c1-2.9 3.7-5 6.8-5z"/></svg>
+        تسجيل الدخول بـ Google
+      </button>
+    </div>
+    <div class="status" id="authStatus"></div>
+  </div>
+</div>
+
+<!-- التطبيق -->
+<div id="app" hidden>
+<header>
+  <div class="brand">
+    <h1>📊 PX4X</h1>
+    <p>مكتبتك الخاصة للعروض التقديمية</p>
+  </div>
+  <div class="user">
+    <b id="whoami">👤</b>
+    <button onclick="logout()">تسجيل الخروج</button>
+  </div>
+</header>
+<main>
+  <div class="card">
+    <b>➕ إضافة ملف جديد</b>
+    <div class="drop" id="drop" style="margin-top:12px">
+      <div style="font-size:40px">📂</div>
+      اسحب الملف هنا أو اضغط للاختيار<br>
+      <small>PPT / PPTX / PDF / ODP — حتى 200MB</small>
+      <input type="file" id="fileInput" accept=".ppt,.pptx,.pdf,.odp">
+    </div>
+    <div class="bar" id="bar"><i id="barFill"></i></div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card">
+    <b>📚 ملفاتي</b>
+    <div class="grid" id="grid" style="margin-top:14px"></div>
+    <div class="empty" id="empty" style="display:none">لا توجد ملفات بعد — ارفع أول ملف 👆</div>
+  </div>
+</main>
+</div>
+
+<script>
+let authMode='login';
+function authTab(m){
+  authMode=m;
+  document.getElementById('tabLogin').classList.toggle('active',m==='login');
+  document.getElementById('tabReg').classList.toggle('active',m==='register');
+  document.getElementById('authBtn').textContent = m==='login'?'دخول':'إنشاء الحساب';
+}
+function authStatus(m,c){ const e=document.getElementById('authStatus');
+  e.className='status '+(c||''); e.textContent=m; }
+
+async function doAuth(){
+  const u=document.getElementById('username').value.trim(),
+        p=document.getElementById('password').value;
+  if(!u||!p){ authStatus('⚠ اكتب اسم المستخدم وكلمة المرور','err'); return; }
+  const b=document.getElementById('authBtn'), old=b.textContent;
+  b.disabled=true; b.textContent='⏳ …';
+  try{
+    const r=await fetch('/api/'+(authMode==='login'?'login':'register'),{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:u,password:p})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||'خطأ');
+    boot(d.username);
+  }catch(e){ authStatus('⚠ '+e.message,'err'); }
+  finally{ b.disabled=false; b.textContent=old; }
+}
+
+async function logout(){
+  await fetch('/api/logout',{method:'POST'});
+  location.reload();
+}
+
+async function boot(username){
+  document.getElementById('authWrap').hidden=true;
+  document.getElementById('app').hidden=false;
+  document.getElementById('whoami').textContent='👤 '+username;
+  wireUpload();
+  loadFiles();
+}
+
+(async function init(){
+  try{
+    const c=await fetch('/api/config'), cfg=await c.json();
+    if(cfg.google_enabled) document.getElementById('googleWrap').hidden=false;
+  }catch(e){}
+  try{
+    const r=await fetch('/api/me');
+    if(r.ok){ const d=await r.json(); boot(d.username); }
+  }catch(e){}
+})();
+
+/* ---------- files ---------- */
+const drop=document.getElementById('drop'), fi=document.getElementById('fileInput'),
+      bar=document.getElementById('bar'), fill=document.getElementById('barFill'),
+      status=document.getElementById('status'), grid=document.getElementById('grid'),
+      empty=document.getElementById('empty');
+let wired=false;
+function wireUpload(){
+  if(wired) return; wired=true;
+  drop.onclick=()=>fi.click();
+  ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over');}));
+  ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over');}));
+  drop.addEventListener('drop',ev=>{ if(ev.dataTransfer.files.length) upload(ev.dataTransfer.files[0]); });
+  fi.onchange=()=>{ if(fi.files.length) upload(fi.files[0]); fi.value=''; };
+}
+function setStatus(m,c){ status.className='status '+(c||''); status.textContent=m; }
+
+function upload(f){
+  const ext=f.name.split('.').pop().toLowerCase();
+  if(!['ppt','pptx','pdf','odp'].includes(ext)){ setStatus('⚠ صيغة غير مدعومة','err'); return; }
+  const xhr=new XMLHttpRequest(), fd=new FormData();
+  fd.append('file',f);
+  bar.style.display='block'; fill.style.width='0%';
+  setStatus('⏳ جاري الرفع…');
+  xhr.upload.onprogress=e=>{ if(e.lengthComputable) fill.style.width=(e.loaded/e.total*100)+'%'; };
+  xhr.onload=()=>{
+    bar.style.display='none';
+    if(xhr.status===200){ setStatus('✅ تم الرفع بنجاح','ok'); loadFiles(); }
+    else{ let m='فشل الرفع'; try{m=JSON.parse(xhr.responseText).detail||m;}catch(e){}
+      if(xhr.status===401){ setStatus('⚠ انتهت الجلسة — سجّل الدخول مجدداً','err'); setTimeout(()=>location.reload(),1500); }
+      else setStatus('⚠ '+m,'err'); }
+  };
+  xhr.onerror=()=>{ bar.style.display='none'; setStatus('⚠ خطأ بالاتصال','err'); };
+  xhr.open('POST','/api/upload'); xhr.send(fd);
+}
+
+function icon(ext){ return ext==='.pdf'?'📕':'📊'; }
+
+async function loadFiles(){
+  const r=await fetch('/api/files');
+  if(r.status===401){ location.reload(); return; }
+  const d=await r.json();
+  grid.innerHTML='';
+  empty.style.display=d.files.length?'none':'block';
+  d.files.forEach(f=>{
+    const el=document.createElement('div'); el.className='file';
+    el.innerHTML=`<div class="icon">${icon(f.ext)}</div>
+      <div class="t" title="${esc(f.name)}">${esc(f.name)}</div>
+      <div class="m">${f.size_h} • ${f.uploaded_at}</div>
+      <div class="row">
+        <button class="btn view">👁 عرض</button>
+        <button class="btn dl">⬇</button>
+        <button class="btn share">🔗 مشاركة</button>
+        <button class="btn del">🗑</button>
+      </div>`;
+    el.querySelector('.view').onclick=()=>location.href='/view?name='+encodeURIComponent(f.name);
+    el.querySelector('.dl').onclick=()=>{ const a=document.createElement('a');
+      a.href='/files/'+encodeURIComponent(f.name); a.download=f.name; a.click(); };
+    el.querySelector('.share').onclick=async()=>{
+      const rr=await fetch('/api/share/'+encodeURIComponent(f.name),{method:'POST'});
+      if(!rr.ok){ setStatus('⚠ فشل إنشاء رابط المشاركة','err'); return; }
+      const dd=await rr.json();
+      const link=location.origin+'/s/'+dd.token;
+      try{ await navigator.clipboard.writeText(link);
+        setStatus('🔗 تم نسخ رابط المشاركة! أرسله لأي شخص — يفتح بدون تسجيل دخول','ok');
+      }catch(e){ prompt('انسخ رابط المشاركة:',link); }
+    };
+    el.querySelector('.del').onclick=async()=>{
+      if(!confirm('تحذف "'+f.name+'"؟')) return;
+      const rr=await fetch('/api/files/'+encodeURIComponent(f.name),{method:'DELETE'});
+      if(rr.ok){ setStatus('🗑 تم الحذف','ok'); loadFiles(); }
+      else setStatus('⚠ فشل الحذف','err');
+    };
+    grid.appendChild(el);
+  });
+}
+function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+</script>
+</body>
+</html>
